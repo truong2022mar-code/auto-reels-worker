@@ -1,69 +1,67 @@
-const { readJobs, updateRow } = require("./googleSheet");
-const { postReels, postComment } = require("./facebook");
+import { readJobs, updateJob } from './googleSheet.js'
+import { postReels, postComment } from './facebook.js'
+
+function random(a, b) {
+  return Math.floor(Math.random() * (b - a + 1)) + a
+}
 
 async function main() {
-  const now = new Date();
+  const now = new Date()
+  const jobs = await readJobs()
 
-  const jobs = await readJobs();
-
-  if (jobs.length === 0) {
-    console.log("No job found");
-    return;
+  if (!jobs.length) {
+    console.log('No job found')
+    return
   }
 
-  // ===== ƯU TIÊN NOW =====
-  let job =
-    jobs.find(j => j.status === "NOW") ||
-    jobs.find(j =>
-      j.status === "WAIT" &&
-      new Date(j.scheduleTime) <= now
+  const job =
+    jobs.find(j => j.Status === 'NOW') ||
+    jobs.find(
+      j =>
+        j.Status === 'WAIT' &&
+        new Date(j.ScheduleTime) <= now
     ) ||
-    jobs.find(j =>
-      j.status === "POSTED" &&
-      j.comment === "WAIT" &&
-      new Date(j.delayComment) <= now
-    );
+    jobs.find(
+      j =>
+        j.Status === 'POSTED' &&
+        j.Comment === 'WAIT' &&
+        new Date(j.DelayComment) <= now
+    )
 
   if (!job) {
-    console.log("No executable job");
-    return;
+    console.log('No executable job')
+    return
   }
 
-  console.log("RUN JOB:", job);
+  console.log('RUN JOB:', job)
 
   // ===== POST REELS =====
-  if (job.status === "NOW" || job.status === "WAIT") {
+  if (job.Status === 'NOW' || job.Status === 'WAIT') {
+    const { reelId, reelLink } = await postReels(job)
 
-    const link = await postReels(job);
+    const delayMin = random(5, 10)
+    const delayTime = new Date(Date.now() + delayMin * 60000)
 
-    const delayMinutes = random(5, 10);
-    const delayTime = new Date(Date.now() + delayMinutes * 60000);
-
-    await updateRow(job.row, {
-      Status: "POSTED",
-      "Link Reels": link,
-      "Delay Comment": delayTime.toISOString(),
-      Comment: "WAIT"
-    });
-
-    return;
+    await updateJob(job, 'POSTED', reelLink)
+    job.DelayComment = delayTime.toISOString()
+    job.Comment = 'WAIT'
+    await job.save()
+    return
   }
 
   // ===== COMMENT =====
-  if (job.status === "POSTED" && job.comment === "WAIT") {
+  if (job.Status === 'POSTED' && job.Comment === 'WAIT') {
+    await postComment({
+      ...job,
+      reelId: job.ReelId
+    })
 
-    await postComment(job.linkReels, job);
-
-    await updateRow(job.row, {
-      Comment: "DONE"
-    });
-
-    return;
+    job.Comment = 'DONE'
+    await job.save()
   }
 }
 
-function random(a, b) {
-  return Math.floor(Math.random() * (b - a + 1)) + a;
-}
-
-main();
+main().catch(err => {
+  console.error(err)
+  process.exit(1)
+})
