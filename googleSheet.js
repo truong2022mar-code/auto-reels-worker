@@ -6,10 +6,10 @@ const CLIENT_EMAIL = process.env.GS_CLIENT_EMAIL
 const PRIVATE_KEY = process.env.GS_PRIVATE_KEY
 
 if (!SHEET_ID || !CLIENT_EMAIL || !PRIVATE_KEY) {
-  throw new Error('Missing Google Sheet environment variables')
+  throw new Error('Missing Google Sheet env vars')
 }
 
-function createDoc() {
+function getDoc() {
   const auth = new JWT({
     email: CLIENT_EMAIL,
     key: PRIVATE_KEY.replace(/\\n/g, '\n'),
@@ -19,28 +19,16 @@ function createDoc() {
   return new GoogleSpreadsheet(SHEET_ID, auth)
 }
 
-/**
- * Lấy danh sách job chưa chạy (Status trống)
- */
 export async function readJobs() {
-  const doc = createDoc()
+  const doc = getDoc()
   await doc.loadInfo()
 
   const sheet = doc.sheetsByIndex[0]
   const rows = await sheet.getRows()
 
-  return rows.filter(row => {
-    const status = (row.Status || '').trim()
-    return status === ''
-  })
+  return rows.filter(r => !r.Status || r.Status.trim() === '')
 }
 
-/**
- * Cập nhật trạng thái job
- * @param {GoogleSpreadsheetRow} row
- * @param {string} status
- * @param {string} message
- */
 export async function updateJob(row, status, message = '') {
   row.Status = status
   row.Message = message
