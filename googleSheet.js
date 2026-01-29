@@ -1,53 +1,32 @@
-const { GoogleSpreadsheet } = require("google-spreadsheet");
-const { JWT } = require("google-auth-library");
-const config = require("./config.json");
+import { GoogleSpreadsheet } from 'google-spreadsheet'
+import { JWT } from 'google-auth-library'
 
-const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+const SHEET_ID = process.env.SHEET_ID
 
-function getDoc() {
+const serviceAccount = {
+  client_email: process.env.GS_CLIENT_EMAIL,
+  private_key: process.env.GS_PRIVATE_KEY.replace(/\\n/g, '\n'),
+}
+
+export async function readJobs() {
   const auth = new JWT({
     email: serviceAccount.client_email,
     key: serviceAccount.private_key,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  })
 
-  return new GoogleSpreadsheet(config.SPREADSHEET_ID, auth);
+  const doc = new GoogleSpreadsheet(SHEET_ID, auth)
+  await doc.loadInfo()
+
+  const sheet = doc.sheetsByIndex[0]
+  const rows = await sheet.getRows()
+
+  return rows.filter(r => !r.Status)
 }
 
-async function readJobs() {
-  const doc = getDoc();
-  await doc.loadInfo();
-
-  const sheet = doc.sheetsByTitle["Log Progress"];
-
-  const lastRow = sheet.rowCount;
-  const start = Math.max(2, lastRow - config.READ_LIMIT);
-
-  const rows = await sheet.getRows({ offset: start - 2 });
-
-  return rows.map(r => ({
-    row: r._rowNumber,
-    pageSet: r["PageSet"],
-    scheduleTime: r["ScheduleTime"],
-    status: r["Status"],
-    linkReels: r["Link Reels"],
-    delayComment: r["Delay Comment"],
-    comment: r["Comment"]
-  }));
+export async function updateJob(row, status, message = '') {
+  row.Status = status
+  row.Message = message
+  row.UpdatedAt = new Date().toISOString()
+  await row.save()
 }
-
-async function updateRow(rowNumber, data) {
-  const doc = getDoc();
-  await doc.loadInfo();
-
-  const sheet = doc.sheetsByTitle["Log Progress"];
-  const rows = await sheet.getRows({ offset: rowNumber - 2, limit: 1 });
-
-  Object.keys(data).forEach(k => {
-    rows[0][k] = data[k];
-  });
-
-  await rows[0].save();
-}
-
-module.exports = { readJobs, updateRow };
