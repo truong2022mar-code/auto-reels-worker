@@ -1,0 +1,28 @@
+name: Auto Reels Worker
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install
+        run: npm install
+
+      - name: Run worker
+        env:
+          GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+        run: node index.js
