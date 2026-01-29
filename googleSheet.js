@@ -25,18 +25,9 @@ async function readJobs() {
 
   const sheet = doc.sheetsByIndex[0]
   const rows = await sheet.getRows()
-
-  return rows.filter(r => !r.Status || r.Status.trim() === '')
-}
-
-async function updateJob(row, status, message = '') {
-  row.Status = status
-  row.Message = message
-  row.UpdatedAt = new Date().toISOString()
-  await row.save()
+  return rows
 }
 
 module.exports = {
-  readJobs,
-  updateJob
+  readJobs
 }
