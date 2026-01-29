@@ -1,5 +1,5 @@
-import { GoogleSpreadsheet } from 'google-spreadsheet'
-import { JWT } from 'google-auth-library'
+const { GoogleSpreadsheet } = require('google-spreadsheet')
+const { JWT } = require('google-auth-library')
 
 const SHEET_ID = process.env.SHEET_ID
 const CLIENT_EMAIL = process.env.GS_CLIENT_EMAIL
@@ -19,7 +19,7 @@ function getDoc() {
   return new GoogleSpreadsheet(SHEET_ID, auth)
 }
 
-export async function readJobs() {
+async function readJobs() {
   const doc = getDoc()
   await doc.loadInfo()
 
@@ -29,9 +29,14 @@ export async function readJobs() {
   return rows.filter(r => !r.Status || r.Status.trim() === '')
 }
 
-export async function updateJob(row, status, message = '') {
+async function updateJob(row, status, message = '') {
   row.Status = status
   row.Message = message
   row.UpdatedAt = new Date().toISOString()
   await row.save()
+}
+
+module.exports = {
+  readJobs,
+  updateJob
 }
