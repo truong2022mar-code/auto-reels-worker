@@ -1,8 +1,8 @@
-const { readJobs, updateJob } = require('./googleSheet')
+const { readJobs } = require('./googleSheet')
 const { postReels, postComment } = require('./facebook')
 
-function random(a, b) {
-  return Math.floor(Math.random() * (b - a + 1)) + a
+function random(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
 async function main() {
@@ -10,7 +10,7 @@ async function main() {
   const jobs = await readJobs()
 
   if (!jobs.length) {
-    console.log('No job found')
+    console.log('No jobs')
     return
   }
 
@@ -24,6 +24,7 @@ async function main() {
     return
   }
 
+  // ===== POST REELS =====
   if (job.Status === 'NOW' || job.Status === 'WAIT') {
     const { reelId, reelLink } = await postReels(job)
 
@@ -36,6 +37,7 @@ async function main() {
     return
   }
 
+  // ===== COMMENT =====
   if (job.Status === 'POSTED' && job.Comment === 'WAIT') {
     await postComment(job)
     job.Comment = 'DONE'
@@ -43,4 +45,7 @@ async function main() {
   }
 }
 
-main().catch(console.error)
+main().catch(err => {
+  console.error(err)
+  process.exit(1)
+})
