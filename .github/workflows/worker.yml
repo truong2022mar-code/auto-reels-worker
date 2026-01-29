@@ -18,14 +18,14 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install
+      - name: Install dependencies
         run: |
           rm -rf node_modules package-lock.json
           npm install
 
-
       - name: Run worker
         env:
-          GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
-          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          SHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          GS_CLIENT_EMAIL: ${{ secrets.GS_CLIENT_EMAIL }}
+          GS_PRIVATE_KEY: ${{ secrets.GS_PRIVATE_KEY }}
         run: node index.js
