@@ -1,18 +1,10 @@
-const { GoogleSpreadsheet } = require('google-spreadsheet');
+const { GoogleSpreadsheet } = require("google-spreadsheet");
 
-const serviceAccount = JSON.parse(
-  process.env.GOOGLE_SERVICE_ACCOUNT
-);
+const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
 
-async function readJobs() {
-  const doc = new GoogleSpreadsheet(
-    process.env.SPREADSHEET_ID
-  );
+const doc = new GoogleSpreadsheet(config.SPREADSHEET_ID);
 
-  await doc.useServiceAccountAuth(serviceAccount);
-  await doc.loadInfo();
-
-  return doc.sheetsByIndex[0].getRows();
-}
-
-module.exports = { readJobs };
+await doc.useServiceAccountAuth({
+  client_email: serviceAccount.client_email,
+  private_key: serviceAccount.private_key,
+});
