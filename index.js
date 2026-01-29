@@ -16,42 +16,26 @@ async function main() {
 
   const job =
     jobs.find(j => j.Status === 'NOW') ||
-    jobs.find(
-      j =>
-        j.Status === 'WAIT' &&
-        new Date(j.ScheduleTime) <= now
-    ) ||
-    jobs.find(
-      j =>
-        j.Status === 'POSTED' &&
-        j.Comment === 'WAIT' &&
-        new Date(j.DelayComment) <= now
-    )
+    jobs.find(j => j.Status === 'WAIT' && new Date(j.ScheduleTime) <= now) ||
+    jobs.find(j => j.Status === 'POSTED' && j.Comment === 'WAIT' && new Date(j.DelayComment) <= now)
 
   if (!job) {
     console.log('No executable job')
     return
   }
 
-  console.log('RUN JOB')
-
-  // ===== POST REELS =====
   if (job.Status === 'NOW' || job.Status === 'WAIT') {
     const { reelId, reelLink } = await postReels(job)
-
-    const delayMin = random(5, 10)
-    const delayTime = new Date(Date.now() + delayMin * 60000)
 
     job.Status = 'POSTED'
     job.ReelId = reelId
     job.LinkReels = reelLink
-    job.DelayComment = delayTime.toISOString()
+    job.DelayComment = new Date(Date.now() + random(5, 10) * 60000).toISOString()
     job.Comment = 'WAIT'
     await job.save()
     return
   }
 
-  // ===== COMMENT =====
   if (job.Status === 'POSTED' && job.Comment === 'WAIT') {
     await postComment(job)
     job.Comment = 'DONE'
@@ -59,7 +43,4 @@ async function main() {
   }
 }
 
-main().catch(err => {
-  console.error(err)
-  process.exit(1)
-})
+main().catch(console.error)
