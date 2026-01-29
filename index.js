@@ -1,5 +1,5 @@
-import { readJobs, updateJob } from './googleSheet.js'
-import { postReels, postComment } from './facebook.js'
+const { readJobs, updateJob } = require('./googleSheet')
+const { postReels, postComment } = require('./facebook')
 
 function random(a, b) {
   return Math.floor(Math.random() * (b - a + 1)) + a
@@ -33,7 +33,7 @@ async function main() {
     return
   }
 
-  console.log('RUN JOB:', job)
+  console.log('RUN JOB')
 
   // ===== POST REELS =====
   if (job.Status === 'NOW' || job.Status === 'WAIT') {
@@ -42,7 +42,9 @@ async function main() {
     const delayMin = random(5, 10)
     const delayTime = new Date(Date.now() + delayMin * 60000)
 
-    await updateJob(job, 'POSTED', reelLink)
+    job.Status = 'POSTED'
+    job.ReelId = reelId
+    job.LinkReels = reelLink
     job.DelayComment = delayTime.toISOString()
     job.Comment = 'WAIT'
     await job.save()
@@ -51,11 +53,7 @@ async function main() {
 
   // ===== COMMENT =====
   if (job.Status === 'POSTED' && job.Comment === 'WAIT') {
-    await postComment({
-      ...job,
-      reelId: job.ReelId
-    })
-
+    await postComment(job)
     job.Comment = 'DONE'
     await job.save()
   }
